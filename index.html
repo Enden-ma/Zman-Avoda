@@ -96,9 +96,8 @@
 
         button.main-btn:active { transform: scale(0.98); background: #FFFFFF; }
 
-        /* Zman Neshima Font Style */
         .zman-neshima-font {
-            font-family: 'Assistant', 'Segoe UI', sans-serif;
+            font-family: sans-serif;
             font-weight: 500;
             letter-spacing: 0.5px;
         }
@@ -295,10 +294,24 @@
         let noiseGain = null;
         let isSoftnoiseOn = false;
 
-        function playStartBeep() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
+        // התיקון הקריטי לאייפון - פתיחת ה-Audio Context בתוך אירוע לחיצה
+        function unlockAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            // השמעת שקט קצרצר כדי "לאקטב" את הסאונד
+            const buffer = audioCtx.createBuffer(1, 1, 22050);
+            const source = audioCtx.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioCtx.destination);
+            source.start(0);
+        }
 
+        function playStartBeep() {
+            unlockAudio();
             for (let i = 0; i < 3; i++) {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
@@ -316,7 +329,7 @@
         }
 
         function playEndChime() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            unlockAudio();
             const interval = 1 / 15; 
             for (let i = 0; i < 5; i++) {
                 const osc = audioCtx.createOscillator();
@@ -355,18 +368,21 @@
         }
 
         function startSoftnoise() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
+            unlockAudio();
             stopSoftnoise(); 
             noiseSource = audioCtx.createBufferSource();
             noiseSource.buffer = createPinkNoiseBuffer(audioCtx);
             noiseSource.loop = true;
+            
+            // Vocoder-style filtering (Hollow & Deep)
             noiseFilter = audioCtx.createBiquadFilter();
             noiseFilter.type = 'bandpass';
             noiseFilter.frequency.value = 350; 
             noiseFilter.Q.value = 0.6; 
+
             noiseGain = audioCtx.createGain();
-            noiseGain.gain.value = 0.02; // Half volume of clicks
+            noiseGain.gain.value = 0.02; // חצי מעוצמת הטיקים
+
             noiseSource.connect(noiseFilter);
             noiseFilter.connect(noiseGain);
             noiseGain.connect(audioCtx.destination);
@@ -383,6 +399,7 @@
 
         const softnoiseToggle = document.getElementById('softnoiseToggle');
         softnoiseToggle.addEventListener('click', () => {
+            unlockAudio();
             isSoftnoiseOn = !isSoftnoiseOn;
             softnoiseToggle.classList.toggle('active', isSoftnoiseOn);
             if (isRunning) {
@@ -485,19 +502,21 @@
             if (isSoftnoiseOn && noiseFilter && noiseGain) {
                 const pulse = ((now - phaseRealStartTime) % 10000) / 10000;
                 const wave = Math.sin(pulse * Math.PI * 2) * 0.5 + 0.5;
+                // Soft breathing movement
                 noiseFilter.frequency.setValueAtTime(350 + (wave * 250), audioCtx.currentTime);
                 noiseGain.gain.setValueAtTime(0.015 + (wave * 0.01), audioCtx.currentTime);
             }
         }
 
         startBtn.addEventListener('click', () => {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            unlockAudio();
             controls.style.display = 'none'; timerVisual.style.display = 'flex';
             stopBtn.style.display = 'block'; isRunning = true;
             lastDisplayVal = ""; setPhase(true); engineInterval = setInterval(runEngine, 50);
         });
 
         nextPhaseBtn.addEventListener('click', () => {
+            unlockAudio();
             transitionScreen.style.display = 'none'; timerVisual.style.display = 'flex';
             stopBtn.style.display = 'block'; isRunning = true;
             lastDisplayVal = ""; setPhase(!isFocusMode); engineInterval = setInterval(runEngine, 50);
