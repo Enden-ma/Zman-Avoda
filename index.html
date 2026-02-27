@@ -222,13 +222,16 @@
         }
 
         .round-btn {
-            width: 300px;
-            height: 300px;
+            width: 288px; /* Matched to the exact outer diameter of the timer ring */
+            height: 288px;
+            box-sizing: border-box; /* Keeps the 8px border inside the 288px footprint */
             border-radius: 50%;
             background: transparent;
             color: #FFFFFF;
-            font-size: 28px;
-            border: 2px solid #FFFFFF;
+            font-size: 38px; /* Sized to fit nicely inside the circle */
+            font-weight: 300; /* Matched to the numeral timer boldness */
+            letter-spacing: 2px; /* Matched to the numeral timer spacing */
+            border: 8px solid #FFFFFF; /* Matched to the timer's 8px stroke */
             cursor: pointer;
             transition: transform 0.2s, background 0.3s;
             display: flex;
@@ -434,7 +437,7 @@
         });
 
         const FOCUS_COLOR_1 = '#81D4FA'; const FOCUS_COLOR_2 = '#FFCDD2'; 
-        const BREAK_COLOR_1 = '#A8E6CF'; const BREAK_COLOR_2 = '#FFF9C4'; 
+        const BREAK_COLOR_1 = '#A8E6CF'; const BREAK_COLOR_2 = '#E4C95A'; 
         const circMain = 879.64; const circMin = 804.24;
 
         let isRunning = false; let isFocusMode = true;
