@@ -3,635 +3,618 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Zman Avoda</title>
+    <title>Zman</title>
     
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon.png">
-    <meta name="theme-color" content="#81D4FA">
+    <meta name="theme-color" content="#FFCDD2">
     
     <style>
-        /* Absolute screen lock to prevent scrolling on iOS */
+        /* === GLOBAL APP STYLES === */
         html, body {
-            margin: 0;
-            padding: 0;
-            width: 100vw;
-            height: 100dvh; /* Exact dynamic height */
-            overflow: hidden;
-            touch-action: none; /* Disable touch gestures like zoom or pull-to-refresh */
-            position: fixed; /* Prevents rubber-band scrolling */
-            background-color: #81D4FA;
+            margin: 0; padding: 0; width: 100vw; height: 100dvh; 
+            overflow: hidden; touch-action: none; position: fixed; 
+            background-color: #FFCDD2; 
+            color: #FFFFFF; font-family: sans-serif;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            box-sizing: border-box; 
+            transition: background-color 0.67s ease-in-out; /* Sped up to match UI */
+            user-select: none; -webkit-user-select: none;
         }
 
-        body {
-            color: #FFFFFF; 
-            font-family: sans-serif; 
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            box-sizing: border-box;
-            padding: 20px;
-            transition: background-color 2s ease-in-out; 
-            user-select: none;
-            -webkit-user-select: none;
+        /* App Switcher */
+        #app-switcher {
+            position: absolute; top: 40px; z-index: 100;
+            background: rgba(255, 255, 255, 0.15); border-radius: 20px;
+            display: flex; padding: 4px; gap: 4px;
+            transition: opacity 0.4s ease;
+        }
+        .switcher-btn {
+            background: transparent; border: none; 
+            color: rgba(255, 255, 255, 0.6); /* Softer inactive text */
+            padding: 8px 24px; border-radius: 16px; font-size: 14px; font-weight: bold;
+            cursor: pointer; transition: all 0.3s; -webkit-tap-highlight-color: transparent;
+        }
+        .switcher-btn.active {
+            background: rgba(255, 255, 255, 0.85); /* Slightly transparent active bubble */
+            color: rgba(69, 90, 100, 0.9);
         }
 
-        .controls {
-            display: flex;
-            flex-direction: column;
-            gap: 25px;
-            width: 100%;
-            max-width: 350px;
+        /* App Containers */
+        .app-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; 
+            transition: opacity 0.65s ease-in-out; /* Slowed down to match Color */
+            padding: 20px; box-sizing: border-box;
+        }
+        .app-container.active {
+            opacity: 1; pointer-events: auto; z-index: 10;
         }
 
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .text-only-btn {
-            background: none;
-            border: none;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 18px;
-            font-weight: 500;
-            letter-spacing: 1px;
-            cursor: pointer;
-            margin-top: 40px;
-            padding: 10px 20px;
-            -webkit-tap-highlight-color: transparent;
-            transition: color 0.2s;
-        }
-
-        .text-only-btn:active {
-            color: #FFFFFF;
-        }
-
-        /* Paused state visual feedback */
-        .is-paused {
-            opacity: 0.4;
-        }
-
-        label {
-            font-size: 16px;
-            font-weight: bold;
-            opacity: 0.9;
-        }
-
+        /* === SHARED UI ELEMENTS === */
+        .controls { display: flex; flex-direction: column; gap: 25px; width: 100%; max-width: 350px; }
+        .input-group { display: flex; flex-direction: column; gap: 10px; }
+        .header-row { display: flex; justify-content: space-between; align-items: center; }
+        label { font-size: 16px; font-weight: bold; opacity: 0.9; }
+        
         input {
-            background: rgba(255, 255, 255, 0.15);
-            border: 1.5px solid rgba(255, 255, 255, 0.25);
-            color: #FFFFFF;
-            padding: 15px;
-            border-radius: 14px;
-            font-size: 22px;
-            text-align: center;
-            width: 100%;
-            box-sizing: border-box;
-            outline: none;
-            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.15); border: 1.5px solid rgba(255, 255, 255, 0.25);
+            color: #FFFFFF; padding: 15px; border-radius: 14px; font-size: 22px; text-align: center;
+            width: 100%; box-sizing: border-box; outline: none; -webkit-appearance: none;
         }
+        input::placeholder { color: rgba(255, 255, 255, 0.45); }
 
         .toggle-label {
-            font-size: 13px;
-            letter-spacing: 0.5px;
-            background: rgba(255, 255, 255, 0.15);
-            padding: 5px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.3s ease;
-            -webkit-tap-highlight-color: transparent;
+            font-size: 13px; letter-spacing: 0.5px; background: rgba(255, 255, 255, 0.15);
+            padding: 5px 12px; border-radius: 8px; cursor: pointer; transition: all 0.3s ease;
+            -webkit-tap-highlight-color: transparent; display: inline-block;
         }
-        
-        .toggle-label.active {
-            background: rgba(255, 255, 255, 0.4);
-        }
+        .toggle-label.active { background: rgba(255, 255, 255, 0.4); }
 
         button.main-btn {
-            background-color: rgba(255, 255, 255, 0.9);
-            color: #455A64; 
-            border: none;
-            padding: 22px;
-            border-radius: 16px;
-            font-size: 22px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            transition: transform 0.2s, background 0.3s;
-            -webkit-tap-highlight-color: transparent;
+            background-color: rgba(255, 255, 255, 0.65); 
+            color: rgba(69, 90, 100, 0.9); 
+            border: none; padding: 22px;
+            border-radius: 16px; 
+            font-size: 25px; /* Increased from 22px */
+            font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: transform 0.2s, background 0.3s;
+            -webkit-tap-highlight-color: transparent; margin-top: 10px;
+            display: flex; align-items: center; justify-content: center; /* Forces hard centering */
         }
+        button.main-btn:active { transform: scale(0.98); background: rgba(255, 255, 255, 0.85); }
 
-        button.main-btn:active { transform: scale(0.98); background: #FFFFFF; }
-
-        .zman-neshima-font {
-            font-family: sans-serif;
-            font-weight: 500;
-            letter-spacing: 0.5px;
+        .text-only-btn {
+            background: none; border: none; color: rgba(255, 255, 255, 0.7); font-size: 18px;
+            font-weight: 500; letter-spacing: 1px; cursor: pointer; margin-top: 40px; padding: 10px 20px;
+            -webkit-tap-highlight-color: transparent; transition: color 0.2s;
         }
+        .text-only-btn:active { color: #FFFFFF; }
 
-        .timer-ui {
-            display: none;
-            position: relative;
-            width: 300px;
-            height: 300px;
-            align-items: center;
-            justify-content: center;
-            transition: opacity 0.5s ease-in-out;
-        }
-
-        #ring-wrapper {
-            position: absolute;
-            width: 300px;
-            height: 300px;
-        }
-
-        .breathe-scale {
-            animation: ring-breathe 10s infinite ease-in-out;
-        }
-
-        @keyframes ring-breathe {
-            0%   { transform: scale(0.9); }
-            40%  { transform: scale(1.1); } 
-            100% { transform: scale(0.9); } 
-        }
-
-        svg { 
-            transform: rotate(-90deg); 
-            width: 100%;
-            height: 100%;
-        }
-        
+        svg { transform: rotate(-90deg); width: 100%; height: 100%; }
         circle { fill: none; stroke-linecap: round; }
+
+        /* === ZMAN AVODA SPECIFIC STYLES === */
+        #avoda-timerVisual {
+            display: none; position: relative; width: 300px; height: 300px;
+            align-items: center; justify-content: center; transition: opacity 0.5s ease-in-out;
+        }
+        #avoda-timerVisual.is-paused { opacity: 0.4; }
+        #ring-wrapper { position: absolute; width: 300px; height: 300px; }
+        .breathe-scale { animation: ring-breathe 10s infinite ease-in-out; }
+        @keyframes ring-breathe { 0%, 100% { transform: scale(0.9); } 40% { transform: scale(1.1); } }
         
         .bg-ring-main { stroke: rgba(255, 255, 255, 0.2); stroke-width: 8; }
-        .progress-ring-main {
-            stroke: #FFFFFF; 
-            stroke-width: 8;
-            stroke-dasharray: 879.64; 
-            stroke-dashoffset: 0;
-            transition: stroke-dashoffset 0.1s linear;
-        }
-
+        .progress-ring-main { stroke: #FFFFFF; stroke-width: 8; stroke-dasharray: 879.64; stroke-dashoffset: 0; transition: stroke-dashoffset 0.1s linear; }
         .bg-ring-min { stroke: rgba(255, 255, 255, 0.1); stroke-width: 3; }
-        .progress-ring-min {
-            stroke: rgba(255, 255, 255, 0.4); 
-            stroke-width: 3;
-            stroke-dasharray: 804.24; 
-            stroke-dashoffset: 0;
-            transition: stroke-dashoffset 0.1s linear;
-        }
+        .progress-ring-min { stroke: rgba(255, 255, 255, 0.4); stroke-width: 3; stroke-dasharray: 804.24; stroke-dashoffset: 0; transition: stroke-dashoffset 0.1s linear; }
 
-        .breathe-text-wrapper {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none;
-            z-index: 10;
-        }
+        .breathe-text-wrapper { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+        .breathe-text { animation: text-breathe 10s infinite ease-in-out; }
+        @keyframes text-breathe { 0%, 100% { opacity: 0.15; transform: scale(0.95); } 40% { opacity: 1; transform: scale(1.05); } }
 
-        .breathe-text {
-            animation: text-breathe 10s infinite ease-in-out;
+        .avoda-time-display {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 58px; font-weight: 300; font-variant-numeric: tabular-nums; 
+            letter-spacing: 2px; color: #FFFFFF; display: flex; align-items: center;
         }
-
-        @keyframes text-breathe {
-            0%   { opacity: 0.15; transform: scale(0.95); } 
-            40%  { opacity: 1; transform: scale(1.05); } 
-            100% { opacity: 0.15; transform: scale(0.95); }
-        }
-
-        .time-display {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 58px; 
-            font-weight: 300; 
-            font-variant-numeric: tabular-nums; 
-            letter-spacing: 2px;
-            color: #FFFFFF;
-            display: flex;
-            align-items: center;
-        }
-
-        .time-display span {
-            display: inline-block;
-            transition: opacity 0.3s ease; 
-        }
-
+        .avoda-time-display span { display: inline-block; transition: opacity 0.3s ease; }
         #colon { transform: translateY(-4px); }
         .fade-out-tick { opacity: 0; }
-
         .colon-pulse { animation: colon-tick 1s infinite ease-in-out; }
-
-        @keyframes colon-tick {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.2; }
-        }
+        @keyframes colon-tick { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
 
         #transitionScreen {
-            display: none;
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 20;
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            flex-direction: column; align-items: center; justify-content: center; z-index: 20; background-color: inherit;
         }
-
         .round-btn {
-            width: 288px; /* Matched to the exact outer diameter of the timer ring */
-            height: 288px;
-            box-sizing: border-box; /* Keeps the 8px border inside the 288px footprint */
-            border-radius: 50%;
-            background: transparent;
-            color: #FFFFFF;
-            font-size: 38px; /* Sized to fit nicely inside the circle */
-            font-weight: 300; /* Matched to the numeral timer boldness */
-            letter-spacing: 2px; /* Matched to the numeral timer spacing */
-            border: 8px solid #FFFFFF; /* Matched to the timer's 8px stroke */
-            cursor: pointer;
-            transition: transform 0.2s, background 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
+            width: 288px; height: 288px; box-sizing: border-box; border-radius: 50%; background: transparent;
+            color: #FFFFFF; 
+            font-size: 58px; /* Increased from 38px */
+            font-weight: 300; letter-spacing: 2px; border: 8px solid #FFFFFF;
+            cursor: pointer; transition: transform 0.2s, background 0.3s; 
+            display: flex; align-items: center; justify-content: center; text-align: center; 
+            -webkit-tap-highlight-color: transparent;
+            padding-left: 2px; /* Offsets the 2px letter-spacing for true horizontal center */
+            line-height: 1; /* Removes invisible font baseline padding for true vertical center */
+        }
+        .round-btn:active { transform: scale(0.95); background: rgba(255, 255, 255, 0.1); }
+
+        /* === ZMAN NESHIMA SPECIFIC STYLES === */
+        .presets { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 5px; }
+        .preset-btn {
+            background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.3); color: #FFFFFF;
+            padding: 10px 14px; border-radius: 8px; font-size: 16px; cursor: pointer; transition: background 0.2s;
             -webkit-tap-highlight-color: transparent;
         }
+        .preset-btn:active { background: rgba(255, 255, 255, 0.4); }
 
-        .round-btn:active { 
-            transform: scale(0.95); 
-            background: rgba(255, 255, 255, 0.1);
+        .ring-container { position: relative; width: 250px; height: 250px; }
+        .bg-ring { stroke: rgba(255, 255, 255, 0.2); stroke-width: 8; }
+        .progress-ring { stroke: #FFFFFF; stroke-width: 8; stroke-dasharray: 722.56; stroke-dashoffset: 0; transition: stroke-dashoffset 0.05s linear; }
+
+        .neshima-time-display {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 84px; /* Locks numbers strictly at 84px */
+            font-weight: bold; color: #FFFFFF; transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        
+        .neshima-time-display.text-done {
+            font-size: 63px !important; /* Forces shrinkage only for the word "Done" */
         }
 
-        .sub-btn {
-            background: none;
-            border: none;
-            color: rgba(255,255,255,0.7);
-            margin-top: 30px;
-            font-size: 16px;
-            cursor: pointer;
-        }
+        .fade-out { opacity: 0; transform: translate(-50%, -45%) scale(0.9); }
+        .toggle-label.fade-out-toggle { opacity: 0; transform: scale(0.95); }
     </style>
 </head>
 <body>
 
-    <div class="controls" id="controls">
-        <div class="input-group">
-            <div class="header-row">
-                <label>Focus Time (Minutes):</label>
-                <div id="softnoiseToggle" class="toggle-label">softnoise</div>
+    <div id="app-switcher">
+        <button class="switcher-btn active" id="btn-switch-avoda">Avoda</button>
+        <button class="switcher-btn" id="btn-switch-neshima">Neshima</button>
+    </div>
+
+    <div id="app-avoda" class="app-container active">
+        <div class="controls" id="avoda-controls">
+            <div class="input-group">
+                <div class="header-row">
+                    <label>Focus Time (Minutes):</label>
+                    <div id="softnoiseToggle" class="toggle-label">softnoise</div>
+                </div>
+                <input type="number" id="focusInput" value="25" inputmode="decimal" step="0.1">
             </div>
-            <input type="number" id="focusInput" value="25" inputmode="decimal" step="0.1">
+            <div class="input-group">
+                <div class="header-row">
+                    <label>Break Time (Minutes):</label>
+                </div>
+                <input type="number" id="breakInput" value="5" inputmode="decimal" step="0.1">
+            </div>
+            <button id="avoda-startBtn" class="main-btn">Work</button>
         </div>
 
-        <div class="input-group">
-            <div class="header-row">
-                <label>Break Time (Minutes):</label>
+        <div id="avoda-timerVisual">
+            <div id="ring-wrapper">
+                <svg viewBox="0 0 300 300">
+                    <circle class="bg-ring-min" cx="150" cy="150" r="128"></circle>
+                    <circle class="progress-ring-min" id="min-ring" cx="150" cy="150" r="128"></circle>
+                    <circle class="bg-ring-main" cx="150" cy="150" r="140"></circle>
+                    <circle class="progress-ring-main" id="main-ring" cx="150" cy="150" r="140"></circle>
+                </svg>
             </div>
-            <input type="number" id="breakInput" value="5" inputmode="decimal" step="0.1">
+            <div id="text-wrapper" class="breathe-text-wrapper">
+                <div class="avoda-time-display" id="avoda-display">
+                    <span id="digit-m1">2</span><span id="digit-m2">5</span><span id="colon">:</span><span id="digit-s1">0</span><span id="digit-s2">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="transitionScreen">
+            <button id="nextPhaseBtn" class="round-btn">Start<br>Break</button>
+            <button id="endSessionBtn" class="text-only-btn" style="margin-top: 30px;">End Session</button>
         </div>
         
-        <button id="startBtn" class="main-btn">Start Session</button>
+        <button id="avoda-resetBtn" class="text-only-btn" style="display: none; position: relative; z-index: 10;">Reset</button>
     </div>
 
-    <div class="timer-ui" id="timerVisual">
-        <div id="ring-wrapper">
-            <svg viewBox="0 0 300 300">
-                <circle class="bg-ring-min" cx="150" cy="150" r="128"></circle>
-                <circle class="progress-ring-min" id="min-ring" cx="150" cy="150" r="128"></circle>
-                
-                <circle class="bg-ring-main" cx="150" cy="150" r="140"></circle>
-                <circle class="progress-ring-main" id="main-ring" cx="150" cy="150" r="140"></circle>
-            </svg>
-        </div>
-        <div id="text-wrapper" class="breathe-text-wrapper">
-            <div class="time-display" id="display">
-                <span id="digit-m1">2</span><span id="digit-m2">5</span><span id="colon">:</span><span id="digit-s1">0</span><span id="digit-s2">0</span>
+    <div id="app-neshima" class="app-container">
+        <div class="controls" id="neshima-controls">
+            <div class="presets">
+                <button class="preset-btn" data-seq="6-6">King</button>
+                <button class="preset-btn" data-seq="4-4-4-4">Box</button>
+                <button class="preset-btn" data-seq="4-4-8-4">Soothe</button>
+                <button class="preset-btn" data-seq="2-2">New Universe</button>
+                <button class="preset-btn" data-seq="1-1">Acid</button>
             </div>
+            <div class="input-group">
+                <div class="header-row">
+                    <label>Sequence (sec):</label>
+                    <div id="headstartToggle" class="toggle-label active">3s headstart</div>
+                </div>
+                <input type="text" id="sequence" value="6-6" inputmode="text">
+            </div>
+            <div class="input-group">
+                <div class="header-row">
+                    <label>Finish After (optional):</label>
+                    <div id="limitToggle" class="toggle-label active">minutes</div>
+                </div>
+                <input type="number" id="limitInput" placeholder="Endless" inputmode="numeric">
+            </div>
+            <button id="neshima-startBtn" class="main-btn">Breathe</button>
         </div>
-    </div>
 
-    <div id="transitionScreen">
-        <button id="nextPhaseBtn" class="round-btn zman-neshima-font">Start Break</button>
-        <button id="endSessionBtn" class="sub-btn">End Session</button>
+        <div class="ring-container" id="neshima-timerVisual" style="display: none;">
+            <svg width="250" height="250">
+                <circle class="bg-ring" cx="125" cy="125" r="115"></circle>
+                <circle class="progress-ring" id="neshima-ring" cx="125" cy="125" r="115"></circle>
+            </svg>
+            <div class="neshima-time-display" id="neshima-display">3</div>
+        </div>
+        <button id="neshima-stopBtn" class="text-only-btn" style="display: none;">Stop</button>
     </div>
-    
-    <button id="resetBtn" class="text-only-btn" style="display: none; position: relative; z-index: 10;">Reset</button>
 
     <script>
-        let audioCtx;
-        let noiseSource = null;
-        let noiseFilter = null;
-        let noiseGain = null;
-        let isSoftnoiseOn = false;
+        /* === GLOBAL / SHARED UTILS === */
+        let wakeLock = null;
         let isAudioSessionUnlocked = false;
-
-        // Inject silent audio (Base64) to route iOS audio to the media channel
+        const appSwitcher = document.getElementById('app-switcher');
+        const btnAvoda = document.getElementById('btn-switch-avoda');
+        const btnNeshima = document.getElementById('btn-switch-neshima');
+        const appAvoda = document.getElementById('app-avoda');
+        const appNeshima = document.getElementById('app-neshima');
+        
+        // Single silent audio element for iOS unlock
         const silentAudioWav = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
-        const iosAudioSessionUnlocker = new Audio(silentAudioWav);
-        iosAudioSessionUnlocker.loop = false;
+        const iosUnlocker = new Audio(silentAudioWav);
+        iosUnlocker.loop = false;
 
-        function unlockAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
+        async function requestWakeLock() {
+            try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
+        }
+        function releaseWakeLock() {
+            if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
+        }
+
+        // Hide switcher when an app is running
+        function toggleSwitcherVisibility(hide) {
+            appSwitcher.style.opacity = hide ? '0' : '1';
+            appSwitcher.style.pointerEvents = hide ? 'none' : 'auto';
+        }
+
+        // Switching Logic
+        btnAvoda.addEventListener('click', () => {
+            if (btnAvoda.classList.contains('active')) return;
+            // Stop Neshima if running
+            if (isNeshimaRunning) neshimaStopTimer();
             
-            // Trigger the system audio workaround on the first interaction
-            if (!isAudioSessionUnlocked) {
-                iosAudioSessionUnlocker.play().then(() => {
-                    isAudioSessionUnlocked = true;
-                }).catch(e => console.log("Unlocker bypassed", e));
+            btnAvoda.classList.add('active'); btnNeshima.classList.remove('active');
+            appNeshima.classList.remove('active'); appAvoda.classList.add('active');
+            document.body.style.backgroundColor = FOCUS_COLOR_1; // Switch to Avoda Red
+        });
 
-                // Sync the API's internal clock
-                const buffer = audioCtx.createBuffer(1, 1, 22050);
-                const source = audioCtx.createBufferSource();
-                source.buffer = buffer;
-                source.connect(audioCtx.destination);
-                source.start(0);
+        btnNeshima.addEventListener('click', () => {
+            if (btnNeshima.classList.contains('active')) return;
+            // Stop Avoda if running
+            if (isAvodaRunning) avodaResetTimer();
+            
+            btnNeshima.classList.add('active'); btnAvoda.classList.remove('active');
+            appAvoda.classList.remove('active'); appNeshima.classList.add('active');
+            document.body.style.backgroundColor = COLOR_BLUE; // Switch to Neshima Blue
+        });
+
+
+        /* =========================================
+           ZMAN AVODA LOGIC
+           ========================================= */
+        let audioCtx; let noiseSource = null; let noiseFilter = null; let noiseGain = null;
+        let isSoftnoiseOn = false; let isAvodaRunning = false; let isAvodaPaused = false;
+        let avodaCurrentMsLeft = 0; let avodaEngineInterval; let avodaColorInterval;
+        let avodaPhaseEndTime = 0; let avodaPhaseDurationMs = 0; let avodaPhaseRealStartTime = 0; 
+        let isFocusMode = true; let avodaLastDisplayVal = "";
+
+        // Colors swapped: Red is now primary, Blue is secondary
+        const FOCUS_COLOR_1 = '#FFCDD2'; const FOCUS_COLOR_2 = '#81D4FA'; 
+        const BREAK_COLOR_1 = '#A8E6CF'; const BREAK_COLOR_2 = '#E4C95A'; 
+        const circMain = 879.64; const circMin = 804.24;
+
+        const mainRing = document.getElementById('main-ring'); const minRing = document.getElementById('min-ring');
+        const ringWrapper = document.getElementById('ring-wrapper'); const textWrapper = document.getElementById('text-wrapper');
+        const colonEl = document.getElementById('colon');
+        const avodaStartBtn = document.getElementById('avoda-startBtn'); const avodaResetBtn = document.getElementById('avoda-resetBtn');
+        const avodaControls = document.getElementById('avoda-controls'); const avodaTimerVisual = document.getElementById('avoda-timerVisual');
+        const focusInput = document.getElementById('focusInput'); const breakInput = document.getElementById('breakInput');
+        const transitionScreen = document.getElementById('transitionScreen'); const nextPhaseBtn = document.getElementById('nextPhaseBtn');
+        const endSessionBtn = document.getElementById('endSessionBtn');
+
+        function unlockAvodaAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            if (!isAudioSessionUnlocked) {
+                iosUnlocker.play().then(() => isAudioSessionUnlocked = true).catch(e=>{});
+                const buffer = audioCtx.createBuffer(1, 1, 22050); const source = audioCtx.createBufferSource();
+                source.buffer = buffer; source.connect(audioCtx.destination); source.start(0);
                 isAudioSessionUnlocked = true;
             }
         }
 
         function playStartBeep() {
-            unlockAudio();
+            unlockAvodaAudio();
             for (let i = 0; i < 3; i++) {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'sine';
-                osc.frequency.value = 160;
+                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                osc.type = 'sine'; osc.frequency.value = 160;
                 const startTime = audioCtx.currentTime + (i * 0.05);
-                gain.gain.setValueAtTime(0, startTime);
-                gain.gain.linearRampToValueAtTime(1, startTime + 0.01);
+                gain.gain.setValueAtTime(0, startTime); gain.gain.linearRampToValueAtTime(1, startTime + 0.01);
                 gain.gain.linearRampToValueAtTime(0, startTime + 0.04);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start(startTime);
-                osc.stop(startTime + 0.05);
+                osc.connect(gain); gain.connect(audioCtx.destination); osc.start(startTime); osc.stop(startTime + 0.05);
             }
         }
 
         function playEndChime() {
-            unlockAudio();
+            unlockAvodaAudio();
             const interval = 1 / 15; 
             for (let i = 0; i < 5; i++) {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'sine';
-                osc.frequency.value = 176;
+                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                osc.type = 'sine'; osc.frequency.value = 176;
                 const startTime = audioCtx.currentTime + (i * interval); 
-                gain.gain.setValueAtTime(0, startTime);
-                gain.gain.linearRampToValueAtTime(1, startTime + 0.01); 
+                gain.gain.setValueAtTime(0, startTime); gain.gain.linearRampToValueAtTime(1, startTime + 0.01); 
                 gain.gain.linearRampToValueAtTime(0, startTime + interval - 0.01); 
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start(startTime);
-                osc.stop(startTime + interval);
+                osc.connect(gain); gain.connect(audioCtx.destination); osc.start(startTime); osc.stop(startTime + interval);
             }
         }
 
         function createPinkNoiseBuffer(context) {
-            const bufferSize = context.sampleRate * 5; 
-            const buffer = context.createBuffer(1, bufferSize, context.sampleRate);
-            const output = buffer.getChannelData(0);
-            let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+            const bufferSize = context.sampleRate * 5; const buffer = context.createBuffer(1, bufferSize, context.sampleRate);
+            const output = buffer.getChannelData(0); let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
             for (let i = 0; i < bufferSize; i++) {
-                const white = Math.random() * 2 - 1;
-                b0 = 0.99886 * b0 + white * 0.0555179;
-                b1 = 0.99332 * b1 + white * 0.0750759;
-                b2 = 0.96900 * b2 + white * 0.1538520;
-                b3 = 0.86650 * b3 + white * 0.3104856;
-                b4 = 0.55000 * b4 + white * 0.5329522;
-                b5 = -0.7616 * b5 - white * 0.0168980;
-                output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-                output[i] *= 0.11; 
-                b6 = white * 0.115926;
+                const white = Math.random() * 2 - 1; b0 = 0.99886 * b0 + white * 0.0555179; b1 = 0.99332 * b1 + white * 0.0750759;
+                b2 = 0.96900 * b2 + white * 0.1538520; b3 = 0.86650 * b3 + white * 0.3104856; b4 = 0.55000 * b4 + white * 0.5329522;
+                b5 = -0.7616 * b5 - white * 0.0168980; output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+                output[i] *= 0.11; b6 = white * 0.115926;
             }
             return buffer;
         }
 
         function startSoftnoise() {
-            unlockAudio();
-            stopSoftnoise(); 
-            noiseSource = audioCtx.createBufferSource();
-            noiseSource.buffer = createPinkNoiseBuffer(audioCtx);
-            noiseSource.loop = true;
-            
-            // Vocoder-style filter
-            noiseFilter = audioCtx.createBiquadFilter();
-            noiseFilter.type = 'bandpass';
-            noiseFilter.frequency.value = 350; 
-            noiseFilter.Q.value = 0.6; 
-
-            noiseGain = audioCtx.createGain();
-            noiseGain.gain.value = 0.02;
-
-            noiseSource.connect(noiseFilter);
-            noiseFilter.connect(noiseGain);
-            noiseGain.connect(audioCtx.destination);
-            noiseSource.start();
+            unlockAvodaAudio(); stopSoftnoise(); 
+            noiseSource = audioCtx.createBufferSource(); noiseSource.buffer = createPinkNoiseBuffer(audioCtx); noiseSource.loop = true;
+            noiseFilter = audioCtx.createBiquadFilter(); noiseFilter.type = 'bandpass'; noiseFilter.frequency.value = 350; noiseFilter.Q.value = 0.6; 
+            noiseGain = audioCtx.createGain(); noiseGain.gain.value = 0.02;
+            noiseSource.connect(noiseFilter); noiseFilter.connect(noiseGain); noiseGain.connect(audioCtx.destination); noiseSource.start();
         }
 
-        function stopSoftnoise() {
-            if (noiseSource) {
-                try { noiseSource.stop(); } catch(e){}
-                noiseSource.disconnect();
-                noiseSource = null;
-            }
-        }
+        function stopSoftnoise() { if (noiseSource) { try { noiseSource.stop(); } catch(e){} noiseSource.disconnect(); noiseSource = null; } }
 
-        const softnoiseToggle = document.getElementById('softnoiseToggle');
-        softnoiseToggle.addEventListener('click', () => {
-            unlockAudio();
-            isSoftnoiseOn = !isSoftnoiseOn;
-            softnoiseToggle.classList.toggle('active', isSoftnoiseOn);
-            if (isRunning) {
-                if (isSoftnoiseOn) startSoftnoise();
-                else stopSoftnoise();
-            }
+        document.getElementById('softnoiseToggle').addEventListener('click', (e) => {
+            unlockAvodaAudio(); isSoftnoiseOn = !isSoftnoiseOn; e.target.classList.toggle('active', isSoftnoiseOn);
+            if (isAvodaRunning && !isAvodaPaused) { if (isSoftnoiseOn) startSoftnoise(); else stopSoftnoise(); }
         });
 
-        const FOCUS_COLOR_1 = '#81D4FA'; const FOCUS_COLOR_2 = '#FFCDD2'; 
-        const BREAK_COLOR_1 = '#A8E6CF'; const BREAK_COLOR_2 = '#E4C95A'; 
-        const circMain = 879.64; const circMin = 804.24;
-
-        let isRunning = false; let isFocusMode = true;
-        let isPaused = false;
-        let currentMsLeft = 0;
-        let engineInterval; let colorInterval;
-        let phaseEndTime = 0; let phaseDurationMs = 0; let phaseRealStartTime = 0; 
-        let wakeLock = null; let lastDisplayVal = "";
-
-        const mainRing = document.getElementById('main-ring');
-        const minRing = document.getElementById('min-ring');
-        const ringWrapper = document.getElementById('ring-wrapper');
-        const textWrapper = document.getElementById('text-wrapper');
-        const colonEl = document.getElementById('colon');
-        const startBtn = document.getElementById('startBtn');
-        const resetBtn = document.getElementById('resetBtn'); // Replaces stopBtn
-        const controls = document.getElementById('controls');
-        const timerVisual = document.getElementById('timerVisual');
-        const focusInput = document.getElementById('focusInput');
-        const breakInput = document.getElementById('breakInput');
-        const transitionScreen = document.getElementById('transitionScreen');
-        const nextPhaseBtn = document.getElementById('nextPhaseBtn');
-        const endSessionBtn = document.getElementById('endSessionBtn');
-
-        function updateDisplayTick(strVal) {
-            if (strVal === lastDisplayVal) return;
-            const oldChars = lastDisplayVal.split('');
-            const newChars = strVal.split('');
+        function avodaUpdateDisplayTick(strVal) {
+            if (strVal === avodaLastDisplayVal) return;
+            const oldChars = avodaLastDisplayVal.split(''); const newChars = strVal.split('');
             const digitIds = ['digit-m1', 'digit-m2', 'colon', 'digit-s1', 'digit-s2'];
             for (let i = 0; i < 5; i++) {
                 if (i === 2) continue; 
-                if (oldChars[i] !== newChars[i] || lastDisplayVal === "") {
-                    const el = document.getElementById(digitIds[i]);
-                    el.classList.add('fade-out-tick');
-                    setTimeout(() => {
-                        el.innerText = newChars[i];
-                        el.classList.remove('fade-out-tick');
-                    }, 300); 
+                if (oldChars[i] !== newChars[i] || avodaLastDisplayVal === "") {
+                    const el = document.getElementById(digitIds[i]); el.classList.add('fade-out-tick');
+                    setTimeout(() => { el.innerText = newChars[i]; el.classList.remove('fade-out-tick'); }, 300); 
                 }
             }
-            lastDisplayVal = strVal;
+            avodaLastDisplayVal = strVal;
         }
 
-        function setPhase(isFocus) {
-            isFocusMode = isFocus;
-            phaseRealStartTime = Date.now();
+        function avodaSetPhase(isFocus) {
+            isFocusMode = isFocus; avodaPhaseRealStartTime = Date.now();
             const rawVal = parseFloat(isFocus ? focusInput.value : breakInput.value);
             const minutes = (isNaN(rawVal) || rawVal <= 0) ? 1 : rawVal;
-            phaseDurationMs = Math.floor(minutes * 60000);
-            phaseEndTime = Date.now() + phaseDurationMs;
+            avodaPhaseDurationMs = Math.floor(minutes * 60000); avodaPhaseEndTime = Date.now() + avodaPhaseDurationMs;
             
-            ringWrapper.classList.remove('breathe-scale');
-            textWrapper.classList.remove('breathe-text');
-            colonEl.classList.remove('colon-pulse');
+            ringWrapper.classList.remove('breathe-scale'); textWrapper.classList.remove('breathe-text'); colonEl.classList.remove('colon-pulse');
             void ringWrapper.offsetWidth; 
-            ringWrapper.classList.add('breathe-scale');
-            textWrapper.classList.add('breathe-text');
-            colonEl.classList.add('colon-pulse');
+            ringWrapper.classList.add('breathe-scale'); textWrapper.classList.add('breathe-text'); colonEl.classList.add('colon-pulse');
             
-            let c1 = isFocusMode ? FOCUS_COLOR_1 : BREAK_COLOR_1;
-            let c2 = isFocusMode ? FOCUS_COLOR_2 : BREAK_COLOR_2;
-            clearInterval(colorInterval);
-            document.body.style.backgroundColor = c1;
-            let isC1 = true;
-            colorInterval = setInterval(() => {
-                isC1 = !isC1;
-                document.body.style.backgroundColor = isC1 ? c1 : c2;
-            }, 10000);
+            let c1 = isFocusMode ? FOCUS_COLOR_1 : BREAK_COLOR_1; let c2 = isFocusMode ? FOCUS_COLOR_2 : BREAK_COLOR_2;
+            clearInterval(avodaColorInterval); document.body.style.backgroundColor = c1; let isC1 = true;
+            avodaColorInterval = setInterval(() => { isC1 = !isC1; document.body.style.backgroundColor = isC1 ? c1 : c2; }, 10000);
 
-            if (isSoftnoiseOn) startSoftnoise();
-            playStartBeep();
+            if (isSoftnoiseOn) startSoftnoise(); playStartBeep();
         }
 
-        function runEngine() {
-            if (!isRunning) return;
-            const now = Date.now();
-            let msLeft = phaseEndTime - now;
+        function avodaRunEngine() {
+            if (!isAvodaRunning) return;
+            const now = Date.now(); let msLeft = avodaPhaseEndTime - now;
             if (msLeft <= 0) {
-                clearInterval(engineInterval); clearInterval(colorInterval);
-                isRunning = false; stopSoftnoise(); playEndChime();
-                timerVisual.style.display = 'none'; stopBtn.style.display = 'none';
-                transitionScreen.style.display = 'flex';
-                nextPhaseBtn.innerText = isFocusMode ? "Start Break" : "Start Session";
+                clearInterval(avodaEngineInterval); clearInterval(avodaColorInterval);
+                isAvodaRunning = false; stopSoftnoise(); playEndChime(); releaseWakeLock();
+                avodaTimerVisual.style.display = 'none'; avodaResetBtn.style.display = 'none'; transitionScreen.style.display = 'flex';
+                
+                // Update button using innerHTML to render the line break
+                nextPhaseBtn.innerHTML = isFocusMode ? "Start<br>Break" : "Work"; 
+                
+                toggleSwitcherVisibility(false);
                 return;
             }
-            const mins = Math.floor(Math.ceil(msLeft / 1000) / 60);
-            const secs = Math.ceil(msLeft / 1000) % 60;
-            updateDisplayTick(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
-            mainRing.style.strokeDashoffset = circMain - ((msLeft / phaseDurationMs) * circMain);
+            const mins = Math.floor(Math.ceil(msLeft / 1000) / 60); const secs = Math.ceil(msLeft / 1000) % 60;
+            avodaUpdateDisplayTick(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+            mainRing.style.strokeDashoffset = circMain - ((msLeft / avodaPhaseDurationMs) * circMain);
             minRing.style.strokeDashoffset = circMin - (((msLeft % 60000) / 60000) * circMin);
 
             if (isSoftnoiseOn && noiseFilter && noiseGain) {
-                const pulse = ((now - phaseRealStartTime) % 10000) / 10000;
-                const wave = Math.sin(pulse * Math.PI * 2) * 0.5 + 0.5;
+                const pulse = ((now - avodaPhaseRealStartTime) % 10000) / 10000; const wave = Math.sin(pulse * Math.PI * 2) * 0.5 + 0.5;
                 noiseFilter.frequency.setValueAtTime(350 + (wave * 250), audioCtx.currentTime);
                 noiseGain.gain.setValueAtTime(0.015 + (wave * 0.01), audioCtx.currentTime);
             }
         }
 
-        function togglePause() {
-            if (!isRunning) return;
-            unlockAudio();
-
-            if (isPaused) {
-                // Resume
-                isPaused = false;
-                phaseEndTime = Date.now() + currentMsLeft;
-                engineInterval = setInterval(runEngine, 50);
-                
-                timerVisual.classList.remove('is-paused');
-                ringWrapper.style.animationPlayState = 'running';
-                textWrapper.style.animationPlayState = 'running';
-                colonEl.style.animationPlayState = 'running';
-                
-                if (isSoftnoiseOn) startSoftnoise();
+        avodaTimerVisual.addEventListener('click', () => {
+            if (!isAvodaRunning) return;
+            unlockAvodaAudio();
+            if (isAvodaPaused) {
+                isAvodaPaused = false; avodaPhaseEndTime = Date.now() + avodaCurrentMsLeft; avodaEngineInterval = setInterval(avodaRunEngine, 50);
+                avodaTimerVisual.classList.remove('is-paused'); ringWrapper.style.animationPlayState = 'running';
+                textWrapper.style.animationPlayState = 'running'; colonEl.style.animationPlayState = 'running';
+                if (isSoftnoiseOn) startSoftnoise(); requestWakeLock();
             } else {
-                // Pause
-                isPaused = true;
-                clearInterval(engineInterval);
-                currentMsLeft = phaseEndTime - Date.now(); // Save exact time remaining
-                
-                timerVisual.classList.add('is-paused');
-                ringWrapper.style.animationPlayState = 'paused';
-                textWrapper.style.animationPlayState = 'paused';
-                colonEl.style.animationPlayState = 'paused';
-                
-                stopSoftnoise();
+                isAvodaPaused = true; clearInterval(avodaEngineInterval); avodaCurrentMsLeft = avodaPhaseEndTime - Date.now();
+                avodaTimerVisual.classList.add('is-paused'); ringWrapper.style.animationPlayState = 'paused';
+                textWrapper.style.animationPlayState = 'paused'; colonEl.style.animationPlayState = 'paused';
+                stopSoftnoise(); releaseWakeLock();
             }
-        }
-
-        // Attach tap-to-pause to the entire visual timer
-        timerVisual.addEventListener('click', togglePause);
-
-        function resetTimer() {
-            isRunning = false; 
-            isPaused = false;
-            clearInterval(engineInterval); 
-            clearInterval(colorInterval);
-            stopSoftnoise(); 
-            
-            // Reset visuals
-            timerVisual.classList.remove('is-paused');
-            ringWrapper.style.animationPlayState = 'running';
-            textWrapper.style.animationPlayState = 'running';
-            colonEl.style.animationPlayState = 'running';
-            
-            timerVisual.style.display = 'none'; 
-            resetBtn.style.display = 'none';
-            transitionScreen.style.display = 'none'; 
-            controls.style.display = 'flex';
-            document.body.style.backgroundColor = FOCUS_COLOR_1;
-        }
-
-        startBtn.addEventListener('click', () => {
-            unlockAudio();
-            controls.style.display = 'none'; timerVisual.style.display = 'flex';
-            resetBtn.style.display = 'block'; 
-            isRunning = true; isPaused = false;
-            lastDisplayVal = ""; setPhase(true); engineInterval = setInterval(runEngine, 50);
         });
 
-        nextPhaseBtn.addEventListener('click', () => {
-            unlockAudio();
-            transitionScreen.style.display = 'none'; timerVisual.style.display = 'flex';
-            resetBtn.style.display = 'block'; 
-            isRunning = true; isPaused = false;
-            lastDisplayVal = ""; setPhase(!isFocusMode); engineInterval = setInterval(runEngine, 50);
+        function avodaResetTimer() {
+            isAvodaRunning = false; isAvodaPaused = false; clearInterval(avodaEngineInterval); clearInterval(avodaColorInterval);
+            stopSoftnoise(); releaseWakeLock();
+            avodaTimerVisual.classList.remove('is-paused'); ringWrapper.style.animationPlayState = 'running';
+            textWrapper.style.animationPlayState = 'running'; colonEl.style.animationPlayState = 'running';
+            avodaTimerVisual.style.display = 'none'; avodaResetBtn.style.display = 'none'; transitionScreen.style.display = 'none'; 
+            avodaControls.style.display = 'flex'; document.body.style.backgroundColor = FOCUS_COLOR_1;
+            toggleSwitcherVisibility(false);
+        }
+
+        function startAvodaFlow(isFocus) {
+            unlockAvodaAudio(); requestWakeLock(); toggleSwitcherVisibility(true);
+            avodaControls.style.display = 'none'; transitionScreen.style.display = 'none'; 
+            avodaTimerVisual.style.display = 'flex'; avodaResetBtn.style.display = 'block'; 
+            isAvodaRunning = true; isAvodaPaused = false; avodaLastDisplayVal = ""; 
+            avodaSetPhase(isFocus); avodaEngineInterval = setInterval(avodaRunEngine, 50);
+        }
+
+        avodaStartBtn.addEventListener('click', () => startAvodaFlow(true));
+        nextPhaseBtn.addEventListener('click', () => startAvodaFlow(!isFocusMode));
+        avodaResetBtn.addEventListener('click', avodaResetTimer);
+        endSessionBtn.addEventListener('click', avodaResetTimer);
+
+
+        /* =========================================
+           ZMAN NESHIMA LOGIC
+           ========================================= */
+        function buildWavDataURI(freq, duration = 0.085, vol = 0.87, decay = 92.1, attack = 0.01) {
+            const sampleRate = 44100; const samples = Math.floor(sampleRate * duration); const buffer = new ArrayBuffer(44 + samples * 2);
+            const view = new DataView(buffer); const writeString = (offset, string) => { for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i)); };
+            writeString(0, 'RIFF'); view.setUint32(4, 36 + samples * 2, true); writeString(8, 'WAVE'); writeString(12, 'fmt ');
+            view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true); writeString(36, 'data'); view.setUint32(40, samples * 2, true);
+            let offset = 44;
+            for (let i = 0; i < samples; i++) {
+                const t = i / sampleRate; let env = 0, timeInWave = 0;
+                if (t >= 0.015 && t <= 0.015 + attack) { env = (t - 0.015) / attack; timeInWave = t - 0.015; } 
+                else if (t > 0.015 + attack && t <= duration - 0.015) { env = Math.exp(-decay * (t - (0.015 + attack))); timeInWave = t - 0.015; }
+                const sine = freq === 0 ? 0 : Math.sin(2 * Math.PI * freq * timeInWave);
+                const sample = Math.max(-1, Math.min(1, sine)) * 32767 * env * vol; view.setInt16(offset, sample, true); offset += 2;
+            }
+            let binary = ''; const bytes = new Uint8Array(buffer); const chunkSize = 8192; 
+            for (let i = 0; i < bytes.length; i += chunkSize) binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+            return 'data:audio/wav;base64,' + btoa(binary);
+        }
+
+        const audioStep = new Audio(buildWavDataURI(396, 0.085, 0.87, 92.1, 0.01));    
+        const audioRestart = new Audio(buildWavDataURI(432, 0.085, 0.87, 92.1, 0.01)); 
+        const audioDone = new Audio(buildWavDataURI(285, 0.085, 0.87, 92.1, 0.01));    
+
+        function playNeshimaBeep(type) {
+            let snd = audioStep; if (type === 'restart') snd = audioRestart; if (type === 'done') snd = audioDone;
+            snd.currentTime = 0; snd.play().catch(() => {});
+        }
+
+        const COLOR_BLUE = '#81D4FA'; const COLOR_GREEN = '#A8E6CF'; const circumference = 2 * Math.PI * 115;
+        let isNeshimaRunning = false; let neshimaEngineInterval; let sequence = []; let currentIndex = 0; let stepEndTime = 0;
+        let sessionEndTime = 0; let useSessionEnd = false; let targetCycles = 0; let cyclesCompleted = 0; let useCycleLimit = false;
+        let isBlueBackground = true; let neshimaLastDisplayVal = ""; let neshimaAudioUnlocked = false;
+        let isHeadstartOn = true; let isMinutesLimit = true;
+
+        const neshimaRing = document.getElementById('neshima-ring'); const neshimaDisplay = document.getElementById('neshima-display');
+        const neshimaStartBtn = document.getElementById('neshima-startBtn'); const neshimaStopBtn = document.getElementById('neshima-stopBtn');
+        const neshimaControls = document.getElementById('neshima-controls'); const neshimaTimerVisual = document.getElementById('neshima-timerVisual');
+        const sequenceInput = document.getElementById('sequence'); const limitInput = document.getElementById('limitInput');
+        const headToggle = document.getElementById('headstartToggle'); const limitToggle = document.getElementById('limitToggle');
+
+        headToggle.addEventListener('click', () => { isHeadstartOn = !isHeadstartOn; headToggle.classList.toggle('active', isHeadstartOn); });
+        limitToggle.addEventListener('click', () => {
+            limitToggle.classList.add('fade-out-toggle');
+            setTimeout(() => { isMinutesLimit = !isMinutesLimit; limitToggle.innerText = isMinutesLimit ? 'minutes' : 'cycles'; limitToggle.classList.remove('fade-out-toggle'); }, 150);
+        });
+        document.querySelectorAll('.preset-btn').forEach(btn => { btn.addEventListener('click', () => sequenceInput.value = btn.dataset.seq); });
+
+        function neshimaUpdateDisplay(val) {
+            const strVal = String(val); if (strVal === String(neshimaLastDisplayVal)) return;
+            neshimaDisplay.classList.add('fade-out');
+            
+            setTimeout(() => { 
+                neshimaDisplay.innerText = strVal; 
+                
+                // Add the smaller text class ONLY if the word is "Done"
+                if (strVal === "Done") {
+                    neshimaDisplay.classList.add('text-done');
+                } else {
+                    neshimaDisplay.classList.remove('text-done');
+                }
+
+                neshimaDisplay.classList.remove('fade-out'); 
+                neshimaLastDisplayVal = strVal; 
+            }, 150);
+        }
+
+        function playCompletionChime() { playNeshimaBeep('done'); setTimeout(() => playNeshimaBeep('done'), 333); setTimeout(() => playNeshimaBeep('done'), 666); }
+
+        function neshimaRunEngine() {
+            if (!isNeshimaRunning) return;
+            const now = Date.now();
+            if (useSessionEnd && now >= sessionEndTime) { neshimaEndSession(); return; }
+
+            let timeLeft = stepEndTime - now; const currentStepDuration = sequence[currentIndex] * 1000;
+            if (timeLeft <= 0) {
+                currentIndex = (currentIndex + 1) % sequence.length; const isCycleRestart = (currentIndex === 0);
+                if (isCycleRestart) { cyclesCompleted++; if (useCycleLimit && cyclesCompleted >= targetCycles) { neshimaEndSession(); return; } }
+                playNeshimaBeep(isCycleRestart ? 'restart' : 'step');
+                isBlueBackground = !isBlueBackground; document.body.style.backgroundColor = isBlueBackground ? COLOR_BLUE : COLOR_GREEN;
+                stepEndTime += (sequence[currentIndex] * 1000); timeLeft = stepEndTime - now;
+            }
+            let currentBeat = Math.max(1, Math.ceil(timeLeft / 1000)); neshimaUpdateDisplay(currentBeat);
+            const percentage = Math.max(0, timeLeft) / currentStepDuration; neshimaRing.style.strokeDashoffset = circumference - (percentage * circumference);
+        }
+
+        function neshimaEndSession() {
+            playCompletionChime(); isNeshimaRunning = false; clearInterval(neshimaEngineInterval); releaseWakeLock();
+            neshimaUpdateDisplay("Done"); neshimaRing.style.strokeDashoffset = 0; neshimaStopBtn.innerText = "Finish"; toggleSwitcherVisibility(false);
+        }
+
+        function neshimaStopTimer() {
+            isNeshimaRunning = false; clearInterval(neshimaEngineInterval); releaseWakeLock();
+            neshimaTimerVisual.style.display = 'none'; neshimaStopBtn.style.display = 'none'; neshimaControls.style.display = 'flex';
+            document.body.style.backgroundColor = COLOR_BLUE; neshimaStopBtn.innerText = "Stop"; neshimaLastDisplayVal = ""; toggleSwitcherVisibility(false);
+        }
+
+        neshimaStartBtn.addEventListener('click', () => {
+            if (!neshimaAudioUnlocked) {
+                if (!isAudioSessionUnlocked) { iosUnlocker.play().catch(e=>{}); isAudioSessionUnlocked = true; }
+                [audioStep, audioRestart, audioDone].forEach(a => { a.muted = true; a.play().then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch(()=>{}); });
+                neshimaAudioUnlocked = true;
+            }
+            sequence = sequenceInput.value.split('-').map(num => parseInt(num.trim())).filter(num => !isNaN(num) && num > 0);
+            if (sequence.length === 0) return;
+            const limitVal = parseInt(limitInput.value); useSessionEnd = false; useCycleLimit = false; cyclesCompleted = 0;
+            if (!isNaN(limitVal) && limitVal > 0) {
+                if (isMinutesLimit) { sessionEndTime = Date.now() + (limitVal * 60000); useSessionEnd = true; } 
+                else { targetCycles = limitVal; useCycleLimit = true; }
+            }
+
+            requestWakeLock(); toggleSwitcherVisibility(true);
+            neshimaControls.style.display = 'none'; neshimaTimerVisual.style.display = 'block'; neshimaStopBtn.style.display = 'block';
+            isNeshimaRunning = true; isBlueBackground = true; document.body.style.backgroundColor = COLOR_BLUE; neshimaStopBtn.innerText = "Stop"; 
+            neshimaLastDisplayVal = ""; neshimaDisplay.innerText = isHeadstartOn ? "3" : String(sequence[0]); neshimaRing.style.strokeDashoffset = 0; 
+
+            setTimeout(async () => {
+                if (isHeadstartOn) {
+                    for (let i = 3; i > 0; i--) { if (!isNeshimaRunning) return; neshimaUpdateDisplay(i); await new Promise(r => setTimeout(r, 1000)); }
+                    if (!isNeshimaRunning) return; 
+                }
+                playNeshimaBeep('restart'); currentIndex = 0; stepEndTime = Date.now() + (sequence[0] * 1000); neshimaEngineInterval = setInterval(neshimaRunEngine, 16);
+            }, 70);
         });
 
-        resetBtn.addEventListener('click', resetTimer);
-        endSessionBtn.addEventListener('click', resetTimer);
+        neshimaStopBtn.addEventListener('click', neshimaStopTimer);
     </script>
 </body>
 </html>

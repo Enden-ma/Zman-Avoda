@@ -1,14 +1,14 @@
 {
-  "name": "Zman Avoda",
-  "short_name": "Zman Avoda",
+  "name": "Zman",
+  "short_name": "Zman",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#81D4FA",
-  "theme_color": "#81D4FA",
+  "background_color": "#FFCDD2",
+  "theme_color": "#FFCDD2",
   "icons": [
     {
       "src": "icon.png",
-      "sizes": "192x192 512x512",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
